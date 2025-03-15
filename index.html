@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Altcoin Season Index Chart</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <canvas id="altcoinChart" style="max-width: 740px; max-height: 720px;"></canvas>
+  <script>
+    async function fetchAltcoinSeasonIndex() {
+      const apiKey = "fcb48144-e78d-497d-8e58-c4814dfe0bde"; // Replace with your CoinMarketCap API key
+      const url = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest?start=1&limit=101&convert=USD&sort=rank";
+      try {
+        const response = await fetch(url, {
+          headers: { "X-CMC_PRO_API_KEY": apiKey }
+        });
+        const data = await response.json();
+        const coins = data.data;
+        
+        // Get Bitcoin's 90-day performance
+        const bitcoin = coins.find(coin => coin.symbol === "BTC");
+        const btcChange90d = bitcoin.quote.USD.percent_change_90d;
+
+        // Filter out stablecoins and wrapped tokens (simplified)
+        const excludedSymbols = ["USDT", "USDC", "DAI", "WBTC", "stETH", "cLINK"];
+        const altcoins = coins.filter(coin => coin.symbol !== "BTC" && !excludedSymbols.includes(coin.symbol)).slice(0, 100);
+
+        // Calculate how many altcoins outperformed Bitcoin
+        const outperformed = altcoins.filter(coin => coin.quote.USD.percent_change_90d > btcChange90d).length;
+        const index = (outperformed / 100) * 100; // Scale to 0-100
+
+        // Render chart
+        const ctx = document.getElementById("altcoinChart").getContext("2d");
+        new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels: ["Altcoin Season Index"],
+            datasets: [{
+              label: "Index (0-100)",
+              data: [index],
+              backgroundColor: "rgba(75, 192, 192, 0.2)",
+              borderColor: "rgba(75, 192, 192, 1)",
+              borderWidth: 1
+            }]
+          },
+          options: {
+            scales: {
+              y: { beginAtZero: true, max: 100 }
+            }
+          }
+        });
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    }
+    fetchAltcoinSeasonIndex();
+  </script>
+</body>
+</html>
